@@ -1,4 +1,4 @@
-function workingMem(subjectName,repetition,displayDuration,maxDifficulty,seedStr)
+function workingMem(subjectName,repetition,displayDuration,maxDifficulty,choiceDuration,seedStr)
 % coding for SH 9th people's hospital
 % 
 % By BYC 12-2019
@@ -11,16 +11,19 @@ if nargin<1
 else
     testMode = 0;
 end
+
 if nargin<2
-    TRIALINFO.repetition = 5;
+    TRIALINFO.repetition = 2;
 else
     TRIALINFO.repetition = repetition;
 end
+
 if nargin<3
     TRIALINFO.displayDuration = 3; % second
 else
     TRIALINFO.displayDuration = displayDuration;
 end
+
 if nargin<4
     TRIALINFO.maxDifficulty = 5; % maximum 5 pictures
 else
@@ -31,8 +34,14 @@ else
     TRIALINFO.maxDifficulty = maxDifficulty;
 end
 
+if nargin<5
+    TRIALINFO.choiceDuration = 5; % second
+else
+    TRIALINFO.choiceDuration = choiceDuration;
+end
+
 % random seed
-if nargin >= 5
+if nargin >= 6
     if strcmp(seedStr,'shuffle') || strcmp(seedStr,'default')
         TRIALINFO.seed = seedStr;
     elseif ischar(seedStr)
@@ -57,13 +66,13 @@ skipKey = KbName('Return'); % skip current trial
 escape = KbName('ESCAPE'); % abort this block
 
 % parameter
+global TRIALINFO
 TRIALINFO.feedback = 1; % 1 to give feedback
 TRIALINFO.feedbackDuration = TRIALINFO.displayDuration; % second
 TRIALINFO.showExplanation = 1;  % 1 to give explanation
 TRIALINFO.explanation = double('请记住出现过的图片，\n\n并按出现顺序依次选择以完成任务。');
 
 % initial OpenGl
-global GL;
 global SCREEN;
 if testMode
     Screen('Preference', 'SkipSyncTests', 1); % for debug/test
@@ -93,10 +102,10 @@ SCREEN.heightPix = winRect(4);
 
 SCREEN.refreshRate = Screen('NominalFrameRate', SCREEN.screenId);
 % backgroundColor = GrayIndex(win);
-backgroundColor = 0.8;
+SCREEN.backgroundColor = 0.8;
 redColor = [0.9 0.1 0.1];
 
-Screen('FillRect', win, backgroundColor);
+Screen('FillRect', win, SCREEN.backgroundColor);
 
 TRIALINFO.imgRate = 4;
 imgSize1 = ceil(min(SCREEN.widthPix/(1+(1+TRIALINFO.imgRate)*ceil(TRIALINFO.maxDifficulty/2)),SCREEN.heightPix/(1+(1+TRIALINFO.imgRate)*2))*TRIALINFO.imgRate);
@@ -117,10 +126,10 @@ for i = 1:length(imgFileName)
     [img{i},~,imgT{i}] = imread(fullfile(pwd,'sources',imgFileName{i}),'png');
     img{i} = imresize(img{i},[TRIALINFO.imgSize,TRIALINFO.imgSize],'nearest'); imgT{i} = ~imresize(imgT{i},[TRIALINFO.imgSize,TRIALINFO.imgSize],'nearest');
     Tindex(:,:,1) = imgT{i};Tindex(:,:,2) = imgT{i};Tindex(:,:,3) = imgT{i};
-    img{i}(Tindex) = backgroundColor*255;
+    img{i}(Tindex) = SCREEN.backgroundColor*255;
 end
             
-ShowCursor;
+ShowCursor('Hand');
 
 % set default text font, style and size,etc
 % Screen('TextFont',win, 'Tahoma');
@@ -129,7 +138,7 @@ Screen('TextStyle',win, 1); % 0=normal,1=bold,2=italic,4=underline,8=outline,32=
 
 Screen('Flip',win);
 
-% show explanation
+%% show explanation
 if TRIALINFO.showExplanation
     explainImgName = {'1.png','2.png','blank.png'};
     explainImg = cell(size(explainImgName));
@@ -161,11 +170,8 @@ if TRIALINFO.showExplanation
         end
         
         if explanationStep<3
-            Screen('TextSize',win,ceil(15/1280*SCREEN.widthPix));
-            [~, ~, ~] = DrawFormattedText(win, 'Press Enter to skip','right',SCREEN.heightPix - ceil(15/1280*SCREEN.widthPix),[0.2 0.2 0.2]);
-            Screen('TextSize',win,ceil(50/1280*SCREEN.widthPix));
-            [~, ~, ~] = DrawFormattedText(win, TRIALINFO.explanation,'center',SCREEN.heightPix/4,[0.2 0.6 0.7]);
-            Screen('TextBackgroundColor',win, backgroundColor);
+            drawExplanation(win);
+            
             Screen('DrawTexture', win, expImgH{explanationStep}, [], [SCREEN.widthPix/2-TRIALINFO.imgSize/2,SCREEN.heightPix/4*3-TRIALINFO.imgSize/2,SCREEN.widthPix/2+TRIALINFO.imgSize/2,SCREEN.heightPix/4*3+TRIALINFO.imgSize/2],[],[],[]);
             Screen('DrawingFinished',win);
             Screen('Flip',win,0,0);
@@ -178,11 +184,8 @@ if TRIALINFO.showExplanation
             end
         elseif explanationStep == 3
             expImgOrder = randperm(3);
-            Screen('TextSize',win,ceil(15/1280*SCREEN.widthPix));
-            [~, ~, ~] = DrawFormattedText(win, 'Press Enter to skip','right',SCREEN.heightPix - ceil(15/1280*SCREEN.widthPix),[0.2 0.2 0.2]);
-            Screen('TextSize',win,ceil(50/1280*SCREEN.widthPix));
-            [~, ~, ~] = DrawFormattedText(win, TRIALINFO.explanation,'center',SCREEN.heightPix/4,[0.2 0.6 0.7]);
-            Screen('TextBackgroundColor',win, backgroundColor);
+            drawExplanation(win);
+            
             Screen('DrawTexture', win, expImgH{expImgOrder(1)}, [], [SCREEN.widthPix/2-TRIALINFO.imgSize/TRIALINFO.imgRate*(1+TRIALINFO.imgRate)-TRIALINFO.imgSize/2,SCREEN.heightPix/4*3-TRIALINFO.imgSize/2,SCREEN.widthPix/2-TRIALINFO.imgSize/TRIALINFO.imgRate*(1+TRIALINFO.imgRate)+TRIALINFO.imgSize/2,SCREEN.heightPix/4*3+TRIALINFO.imgSize/2],[],[],[]);
             Screen('DrawTexture', win, expImgH{expImgOrder(2)}, [], [SCREEN.widthPix/2-TRIALINFO.imgSize/2,SCREEN.heightPix/4*3-TRIALINFO.imgSize/2,SCREEN.widthPix/2+TRIALINFO.imgSize/2,SCREEN.heightPix/4*3+TRIALINFO.imgSize/2],[],[],[]);
             Screen('DrawTexture', win, expImgH{expImgOrder(3)}, [], [SCREEN.widthPix/2+TRIALINFO.imgSize/TRIALINFO.imgRate*(1+TRIALINFO.imgRate)-TRIALINFO.imgSize/2,SCREEN.heightPix/4*3-TRIALINFO.imgSize/2,SCREEN.widthPix/2+TRIALINFO.imgSize/TRIALINFO.imgRate*(1+TRIALINFO.imgRate)+TRIALINFO.imgSize/2,SCREEN.heightPix/4*3+TRIALINFO.imgSize/2],[],[],[]);
@@ -199,11 +202,8 @@ if TRIALINFO.showExplanation
             step4 = tic;
             showSquare = true;
             while toc(step4)<TRIALINFO.displayDuration
-                Screen('TextSize',win,ceil(15/1280*SCREEN.widthPix));
-                [~, ~, ~] = DrawFormattedText(win, 'Press Enter to skip','right',SCREEN.heightPix - ceil(15/1280*SCREEN.widthPix),[0.2 0.2 0.2]);
-                Screen('TextSize',win,ceil(50/1280*SCREEN.widthPix));
-                [~, ~, ~] = DrawFormattedText(win, TRIALINFO.explanation,'center',SCREEN.heightPix/4,[0.2 0.6 0.7]);
-                Screen('TextBackgroundColor',win, backgroundColor);
+                drawExplanation(win);
+                
                 Screen('DrawTexture', win, expImgH{expImgOrder(1)}, [], [SCREEN.widthPix/2-TRIALINFO.imgSize/TRIALINFO.imgRate*(1+TRIALINFO.imgRate)-TRIALINFO.imgSize/2,SCREEN.heightPix/4*3-TRIALINFO.imgSize/2,SCREEN.widthPix/2-TRIALINFO.imgSize/TRIALINFO.imgRate*(1+TRIALINFO.imgRate)+TRIALINFO.imgSize/2,SCREEN.heightPix/4*3+TRIALINFO.imgSize/2],[],[],[]);
                 Screen('DrawTexture', win, expImgH{expImgOrder(2)}, [], [SCREEN.widthPix/2-TRIALINFO.imgSize/2,SCREEN.heightPix/4*3-TRIALINFO.imgSize/2,SCREEN.widthPix/2+TRIALINFO.imgSize/2,SCREEN.heightPix/4*3+TRIALINFO.imgSize/2],[],[],[]);
                 Screen('DrawTexture', win, expImgH{expImgOrder(3)}, [], [SCREEN.widthPix/2+TRIALINFO.imgSize/TRIALINFO.imgRate*(1+TRIALINFO.imgRate)-TRIALINFO.imgSize/2,SCREEN.heightPix/4*3-TRIALINFO.imgSize/2,SCREEN.widthPix/2+TRIALINFO.imgSize/TRIALINFO.imgRate*(1+TRIALINFO.imgRate)+TRIALINFO.imgSize/2,SCREEN.heightPix/4*3+TRIALINFO.imgSize/2],[],[],[]);
@@ -231,11 +231,8 @@ if TRIALINFO.showExplanation
             step5 = tic;
             showSquare = true;
             while toc(step5)<TRIALINFO.displayDuration
-                Screen('TextSize',win,ceil(15/1280*SCREEN.widthPix));
-                [~, ~, ~] = DrawFormattedText(win, 'Press Enter to skip','right',SCREEN.heightPix - ceil(15/1280*SCREEN.widthPix),[0.2 0.2 0.2]);
-                Screen('TextSize',win,ceil(50/1280*SCREEN.widthPix));
-                [~, ~, ~] = DrawFormattedText(win, TRIALINFO.explanation,'center',SCREEN.heightPix/4,[0.2 0.6 0.7]);
-                Screen('TextBackgroundColor',win, backgroundColor);
+                drawExplanation(win);
+                
                 Screen('DrawTexture', win, expImgH{expImgOrder(1)}, [], [SCREEN.widthPix/2-TRIALINFO.imgSize/TRIALINFO.imgRate*(1+TRIALINFO.imgRate)-TRIALINFO.imgSize/2,SCREEN.heightPix/4*3-TRIALINFO.imgSize/2,SCREEN.widthPix/2-TRIALINFO.imgSize/TRIALINFO.imgRate*(1+TRIALINFO.imgRate)+TRIALINFO.imgSize/2,SCREEN.heightPix/4*3+TRIALINFO.imgSize/2],[],[],[]);
                 Screen('DrawTexture', win, expImgH{expImgOrder(2)}, [], [SCREEN.widthPix/2-TRIALINFO.imgSize/2,SCREEN.heightPix/4*3-TRIALINFO.imgSize/2,SCREEN.widthPix/2+TRIALINFO.imgSize/2,SCREEN.heightPix/4*3+TRIALINFO.imgSize/2],[],[],[]);
                 Screen('DrawTexture', win, expImgH{expImgOrder(3)}, [], [SCREEN.widthPix/2+TRIALINFO.imgSize/TRIALINFO.imgRate*(1+TRIALINFO.imgRate)-TRIALINFO.imgSize/2,SCREEN.heightPix/4*3-TRIALINFO.imgSize/2,SCREEN.widthPix/2+TRIALINFO.imgSize/TRIALINFO.imgRate*(1+TRIALINFO.imgRate)+TRIALINFO.imgSize/2,SCREEN.heightPix/4*3+TRIALINFO.imgSize/2],[],[],[]);
@@ -261,15 +258,11 @@ if TRIALINFO.showExplanation
                 showSquare = ~showSquare;
             end
         else
-            Screen('TextSize',win,ceil(15/1280*SCREEN.widthPix));
-            [~, ~, ~] = DrawFormattedText(win, 'Press Enter to skip','right',SCREEN.heightPix - ceil(15/1280*SCREEN.widthPix),[0.2 0.2 0.2]);
-            Screen('TextSize',win,ceil(50/1280*SCREEN.widthPix));
-            [~, ~, ~] = DrawFormattedText(win, TRIALINFO.explanation,'center',SCREEN.heightPix/4,[0.2 0.6 0.7]);
-            Screen('TextBackgroundColor',win, backgroundColor);
+            drawExplanation(win);
             
             Screen('TextSize',win,ceil(60/1280*SCREEN.widthPix));
             [~, ~, ~] = DrawFormattedText(win, double('回答正确！'),'center',SCREEN.heightPix/4*3,[0.2 0.8 0.2]);
-            Screen('TextBackgroundColor',win, backgroundColor);
+            Screen('TextBackgroundColor',win, SCREEN.backgroundColor);
             Screen('DrawingFinished',win);
             Screen('Flip',win,0,0);
             t = tic;
@@ -291,11 +284,191 @@ if TRIALINFO.showExplanation
     end
 end
 
-% formally start
+
+Screen('TextSize',win,ceil(90/1280*SCREEN.widthPix));
+[~, ~, ~] = DrawFormattedText(win, double('点击鼠标开始测试'),'center','center',[0.2 0.8 0.2]);
+Screen('TextBackgroundColor',win, SCREEN.backgroundColor);
+Screen('DrawingFinished',win);
+Screen('Flip',win,0,0);
+
+GetClicks(win);
+%     while 1
+%         [~,~,mouseDown] = GetMouse(win);
+%         if any(mouseDown)
+%             break;
+%         end
+%     end
+
+
+%% formally start
 trialIndex = 1:TRIALINFO.maxDifficulty;
 trialOrder = sort(repmat(trialIndex,1,TRIALINFO.repetition));
 breakFlag = 0;
-correctOrder = cell(TRIALINFO.repetition*TRIALINFO.maxDifficulty,1);
+correctAnswer = cell(size(trialOrder));
+choiceAnswer = cell(size(trialOrder));
+reactionTime = cell(size(trialOrder));
+
+% calculate for location of picture center, order from left to right, top to bottom
+picLocations = calculatePicLocation();
+
 for triali = 1:length(trialOrder)
-    picIndex = randperm(length(img),trialOrder(triali));
+    picRemNum = trialOrder(triali);
+    picDisNum = trialOrder(triali)+1;
+    picIndex = randperm(length(img),picDisNum);
+    picRemOrder = randperm(picDisNum,picRemNum);
+    picDisOrder = randperm(picDisNum);
+    
+    correctAnswer{triali} = picRemOrder;
+    
+    dispImg = cell(picDisNum,1);
+    for i = 1:picDisNum
+        dispImg{i} = Screen('MakeTexture', win, img{picIndex(i)});
+    end
+    
+    % show pictures for remember
+    for remi = 1:picRemNum
+        Screen('DrawTexture', win, dispImg{picRemOrder(remi)}, [], [picLocations{1}(1,1)-TRIALINFO.imgSize/2,picLocations{1}(1,2)-TRIALINFO.imgSize/2,picLocations{1}(1,1)+TRIALINFO.imgSize/2,picLocations{1}(1,2)+TRIALINFO.imgSize/2],[],[],[]);
+        Screen('DrawingFinished',win);
+        Screen('Flip',win,0,0);
+        tic
+        while toc<TRIALINFO.displayDuration
+            [~, ~, keycode] = KbCheck;
+            if keycode(escape)
+                breakFlag = 1;
+                break;
+            elseif keycode(skipKey)
+                break;
+            end
+        end
+        if breakFlag
+            break;
+        end
+    end
+    
+    if breakFlag
+        break;
+    end
+    
+    % start choice
+    for disi = 1:picDisNum
+        Screen('DrawTexture', win, dispImg{picDisOrder(disi)}, [], [picLocations{picDisNum}(disi,1)-TRIALINFO.imgSize/2,picLocations{picDisNum}(disi,2)-TRIALINFO.imgSize/2,picLocations{picDisNum}(disi,1)+TRIALINFO.imgSize/2,picLocations{picDisNum}(disi,2)+TRIALINFO.imgSize/2],[],[],[]);
+    end
+    Screen('DrawingFinished',win);
+    Screen('Flip',win,0,0);
+    
+    choiceT = tic;
+    choicei = 1;
+    chosenPic = [];
+    while toc(choiceT) < TRIALINFO.choiceDuration && choicei <= picRemNum
+        [~,~,mouseDown] = GetMouse(win);
+        if mouseDown(1)
+            while mouseDown(1)
+                % until realease
+                [mx,my,mouseDown] = GetMouse(win);
+            end
+            for mouseChecki = 1:picDisNum
+                vx = [picLocations{picDisNum}(mouseChecki,1)-TRIALINFO.imgSize/2,picLocations{picDisNum}(mouseChecki,1)+TRIALINFO.imgSize/2,picLocations{picDisNum}(mouseChecki,1)+TRIALINFO.imgSize/2,picLocations{picDisNum}(mouseChecki,1)-TRIALINFO.imgSize/2,picLocations{picDisNum}(mouseChecki,1)-TRIALINFO.imgSize/2];
+                vy = [picLocations{picDisNum}(mouseChecki,2)-TRIALINFO.imgSize/2,picLocations{picDisNum}(mouseChecki,2)-TRIALINFO.imgSize/2,picLocations{picDisNum}(mouseChecki,2)+TRIALINFO.imgSize/2,picLocations{picDisNum}(mouseChecki,2)+TRIALINFO.imgSize/2,picLocations{picDisNum}(mouseChecki,2)-TRIALINFO.imgSize/2];
+                if inpolygon(mx,my,vx,vy)
+                    choiceAnswer{triali}(choicei) = picDisOrder(mouseChecki);
+                    chosenPic = cat(1,chosenPic,mouseChecki);
+                    reactionTime{triali}(choicei) = toc(choiceT);
+                    choicei = choicei+1;
+                    for disi = 1:picDisNum
+                        Screen('DrawTexture', win, dispImg{picDisOrder(disi)}, [], [picLocations{picDisNum}(disi,1)-TRIALINFO.imgSize/2,picLocations{picDisNum}(disi,2)-TRIALINFO.imgSize/2,picLocations{picDisNum}(disi,1)+TRIALINFO.imgSize/2,picLocations{picDisNum}(disi,2)+TRIALINFO.imgSize/2],[],[],[]);
+                    end
+                    for squarei = 1:length(chosenPic)
+                        x1 = picLocations{picDisNum}(chosenPic(squarei),1)-TRIALINFO.imgSize/2;
+                        y1 = picLocations{picDisNum}(chosenPic(squarei),2)-TRIALINFO.imgSize/2;
+                        x2 = picLocations{picDisNum}(chosenPic(squarei),1)+TRIALINFO.imgSize/2;
+                        y2 = picLocations{picDisNum}(chosenPic(squarei),2)-TRIALINFO.imgSize/2;
+                        x3 = picLocations{picDisNum}(chosenPic(squarei),1)+TRIALINFO.imgSize/2;
+                        y3 = picLocations{picDisNum}(chosenPic(squarei),2)+TRIALINFO.imgSize/2;
+                        x4 = picLocations{picDisNum}(chosenPic(squarei),1)-TRIALINFO.imgSize/2;
+                        y4 = picLocations{picDisNum}(chosenPic(squarei),2)+TRIALINFO.imgSize/2;
+                        lineMetrix = [x1,x2,x2,x3,x3,x4,x4,x1;y1,y2,y2,y3,y3,y4,y4,y1];
+                        Screen('DrawLines', win, lineMetrix,8,redColor);
+                    end
+                    Screen('DrawingFinished',win);
+                    Screen('Flip',win,0,0);
+                end
+            end
+        end
+    end
+    
+    % for feedback
+    if TRIALINFO.feedback
+        if isequal(choiceAnswer{triali}, correctAnswer{triali})
+            Screen('TextSize',win,ceil(80/1280*SCREEN.widthPix));
+            [~, ~, ~] = DrawFormattedText(win, double('恭喜你回答正确！'),'center','center',[0.2 0.8 0.2]);
+            Screen('TextBackgroundColor',win, SCREEN.backgroundColor);
+            Screen('DrawingFinished',win);
+            Screen('Flip',win,0,0);
+        else
+            Screen('TextSize',win,ceil(80/1280*SCREEN.widthPix));
+            [~, ~, ~] = DrawFormattedText(win, double('请再尝试一下'),'center','center',[0.8 0.2 0.2]);
+            Screen('TextBackgroundColor',win, SCREEN.backgroundColor);
+            Screen('DrawingFinished',win);
+            Screen('Flip',win,0,0);
+        end
+        tic;
+        while toc<TRIALINFO.feedbackDuration
+            [~, ~, keycode] = KbCheck;
+            if keycode(escape)
+                breakFlag = 1;
+                break;
+            elseif keycode(skipKey)
+                break;
+            end
+        end
+    end
+        
+    if breakFlag
+        break;
+    end
+end
+
+
+
+end
+
+function drawExplanation(win)
+global SCREEN
+global TRIALINFO
+Screen('TextSize',win,ceil(15/1280*SCREEN.widthPix));
+[~, ~, ~] = DrawFormattedText(win, double('按回车跳过'),'right',SCREEN.heightPix - ceil(15/1280*SCREEN.widthPix),[0.2 0.2 0.2]);
+Screen('TextSize',win,ceil(50/1280*SCREEN.widthPix));
+[~, ~, ~] = DrawFormattedText(win, TRIALINFO.explanation,'center',SCREEN.heightPix/4,[0.2 0.6 0.7]);
+Screen('TextBackgroundColor',win, SCREEN.backgroundColor);
+end
+
+function picLocations = calculatePicLocation()
+global TRIALINFO
+global SCREEN
+picLocations{1} = [SCREEN.widthPix/2 SCREEN.heightPix/2];
+
+picLocations{2} = [SCREEN.widthPix/2-TRIALINFO.imgSize/TRIALINFO.imgRate*(1+TRIALINFO.imgRate/2), SCREEN.heightPix/2;
+                     SCREEN.widthPix/2+TRIALINFO.imgSize/TRIALINFO.imgRate*(1+TRIALINFO.imgRate/2), SCREEN.heightPix/2];
+
+picLocations{3} = [SCREEN.widthPix/2-TRIALINFO.imgSize/TRIALINFO.imgRate*(1+TRIALINFO.imgRate), SCREEN.heightPix/2;
+                     SCREEN.widthPix/2, SCREEN.heightPix/2;
+                     SCREEN.widthPix/2+TRIALINFO.imgSize/TRIALINFO.imgRate*(1+TRIALINFO.imgRate), SCREEN.heightPix/2];
+
+picLocations{4} = [SCREEN.widthPix/2-TRIALINFO.imgSize/TRIALINFO.imgRate*(1+TRIALINFO.imgRate/2), SCREEN.heightPix/2-TRIALINFO.imgSize/TRIALINFO.imgRate*(1+TRIALINFO.imgRate/2);
+                     SCREEN.widthPix/2+TRIALINFO.imgSize/TRIALINFO.imgRate*(1+TRIALINFO.imgRate/2), SCREEN.heightPix/2-TRIALINFO.imgSize/TRIALINFO.imgRate*(1+TRIALINFO.imgRate/2);
+                     SCREEN.widthPix/2-TRIALINFO.imgSize/TRIALINFO.imgRate*(1+TRIALINFO.imgRate/2), SCREEN.heightPix/2+TRIALINFO.imgSize/TRIALINFO.imgRate*(1+TRIALINFO.imgRate/2);
+                     SCREEN.widthPix/2+TRIALINFO.imgSize/TRIALINFO.imgRate*(1+TRIALINFO.imgRate/2), SCREEN.heightPix/2+TRIALINFO.imgSize/TRIALINFO.imgRate*(1+TRIALINFO.imgRate/2)];
+
+picLocations{5} = [SCREEN.widthPix/2-TRIALINFO.imgSize/TRIALINFO.imgRate*(1+TRIALINFO.imgRate/2), SCREEN.heightPix/2-TRIALINFO.imgSize/TRIALINFO.imgRate*(1+TRIALINFO.imgRate/2);
+                     SCREEN.widthPix/2+TRIALINFO.imgSize/TRIALINFO.imgRate*(1+TRIALINFO.imgRate/2), SCREEN.heightPix/2-TRIALINFO.imgSize/TRIALINFO.imgRate*(1+TRIALINFO.imgRate/2);
+                     SCREEN.widthPix/2-TRIALINFO.imgSize/TRIALINFO.imgRate*(1+TRIALINFO.imgRate), SCREEN.heightPix/2+TRIALINFO.imgSize/TRIALINFO.imgRate*(1+TRIALINFO.imgRate/2);
+                     SCREEN.widthPix/2, SCREEN.heightPix/2+TRIALINFO.imgSize/TRIALINFO.imgRate*(1+TRIALINFO.imgRate/2);
+                     SCREEN.widthPix/2+TRIALINFO.imgSize/TRIALINFO.imgRate*(1+TRIALINFO.imgRate), SCREEN.heightPix/2+TRIALINFO.imgSize/TRIALINFO.imgRate*(1+TRIALINFO.imgRate/2)];
+
+picLocations{6} = [SCREEN.widthPix/2-TRIALINFO.imgSize/TRIALINFO.imgRate*(1+TRIALINFO.imgRate), SCREEN.heightPix/2-TRIALINFO.imgSize/TRIALINFO.imgRate*(1+TRIALINFO.imgRate/2);
+                     SCREEN.widthPix/2, SCREEN.heightPix/2-TRIALINFO.imgSize/TRIALINFO.imgRate*(1+TRIALINFO.imgRate/2);
+                     SCREEN.widthPix/2+TRIALINFO.imgSize/TRIALINFO.imgRate*(1+TRIALINFO.imgRate), SCREEN.heightPix/2-TRIALINFO.imgSize/TRIALINFO.imgRate*(1+TRIALINFO.imgRate/2);
+                     SCREEN.widthPix/2-TRIALINFO.imgSize/TRIALINFO.imgRate*(1+TRIALINFO.imgRate), SCREEN.heightPix/2+TRIALINFO.imgSize/TRIALINFO.imgRate*(1+TRIALINFO.imgRate/2);
+                     SCREEN.widthPix/2, SCREEN.heightPix/2+TRIALINFO.imgSize/TRIALINFO.imgRate*(1+TRIALINFO.imgRate/2);
+                     SCREEN.widthPix/2+TRIALINFO.imgSize/TRIALINFO.imgRate*(1+TRIALINFO.imgRate), SCREEN.heightPix/2+TRIALINFO.imgSize/TRIALINFO.imgRate*(1+TRIALINFO.imgRate/2)];
 end

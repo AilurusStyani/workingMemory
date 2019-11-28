@@ -1,30 +1,35 @@
 function workingMem(subjectName,repetition,displayDuration,maxDifficulty,choiceDuration,seedStr)
+% workingMem(subjectName[,repetition][,displayDuration][,maxDifficulty][,choiceDuration][,seedStr])
 % coding for SH 9th people's hospital
+%
+% If you want to add new images, convert to .png then move in /sources floder.
+%
+% The number in correctAnswer/chosenAnswer represent the order in imgFileName, that refer to the displayed pictures.
 % 
 % By BYC 12-2019
 
 difficultyCap = 5; % valid max difficulty
 
-if nargin<1
+if nargin<1 || isempty(subjectName)
     subjectName = 'test';
     testMode = 1;
 else
     testMode = 0;
 end
 
-if nargin<2
+if nargin<2 || isempty(repetition)
     TRIALINFO.repetition = 2;
 else
     TRIALINFO.repetition = repetition;
 end
 
-if nargin<3
+if nargin<3 || isempty(displayDuration)
     TRIALINFO.displayDuration = 3; % second
 else
     TRIALINFO.displayDuration = displayDuration;
 end
 
-if nargin<4
+if nargin<4 || isempty(maxDifficulty)
     TRIALINFO.maxDifficulty = 5; % maximum 5 pictures
 else
     if maxDifficulty > difficultyCap
@@ -34,8 +39,8 @@ else
     TRIALINFO.maxDifficulty = maxDifficulty;
 end
 
-if nargin<5
-    TRIALINFO.choiceDuration = 5; % second
+if nargin<5 || isempty(choiceDuration)
+    TRIALINFO.choiceDuration = 10; % second
 else
     TRIALINFO.choiceDuration = choiceDuration;
 end
@@ -46,6 +51,8 @@ if nargin >= 6
         TRIALINFO.seed = seedStr;
     elseif ischar(seedStr)
         TRIALINFO.seed = str2double(seedStr);
+    elseif isempty(seedStr)
+        TRIALINFO.seed = ceil(rand()*1000000);
     elseif isnumeric(seedStr)
         TRIALINFO.seed = seedStr;
     end
@@ -56,7 +63,7 @@ rng(TRIALINFO.seed);
 
 % path and file name
 fileName = ['workingMemory_' subjectName '_' datestr(now,'yymmddHHMM')];
-curdir = pwd;
+curDir = pwd;
 saveDir = fullfile(pwd,'data');
 mkdir(saveDir);
 
@@ -108,8 +115,8 @@ redColor = [0.9 0.1 0.1];
 Screen('FillRect', win, SCREEN.backgroundColor);
 
 TRIALINFO.imgRate = 4;
-imgSize1 = ceil(min(SCREEN.widthPix/(1+(1+TRIALINFO.imgRate)*ceil(TRIALINFO.maxDifficulty/2)),SCREEN.heightPix/(1+(1+TRIALINFO.imgRate)*2))*TRIALINFO.imgRate);
-imgSize2 = ceil(min(SCREEN.widthPix/(1+(1+TRIALINFO.imgRate)*ceil(TRIALINFO.maxDifficulty/3)),SCREEN.heightPix/(1+(1+TRIALINFO.imgRate)*3))*TRIALINFO.imgRate);
+imgSize1 = ceil(min(SCREEN.widthPix/(1+(1+TRIALINFO.imgRate)*ceil((TRIALINFO.maxDifficulty+1)/2)),SCREEN.heightPix/(1+(1+TRIALINFO.imgRate)*2))*TRIALINFO.imgRate);
+imgSize2 = ceil(min(SCREEN.widthPix/(1+(1+TRIALINFO.imgRate)*ceil((TRIALINFO.maxDifficulty+1)/3)),SCREEN.heightPix/(1+(1+TRIALINFO.imgRate)*3))*TRIALINFO.imgRate);
 if imgSize1>imgSize2
     layOutType = 1; % in one or two row
     TRIALINFO.imgSize = ceil(imgSize1/2)*2;
@@ -119,7 +126,13 @@ else
 end
 
 % read img source
-imgFileName = {'bag.png','cake.png','chair.png','earphone.png', 'HDD.png', 'lipstick.png', 'microwave.png', 'pingpang.png', 'shoes.png', 'wine.png'};
+sourceIndex = dir(fullfile(curDir,'sources','*.png'));
+imgFileName = {};
+for i = 1:length(sourceIndex)
+    if ~contains(sourceIndex(i).name,'exp1') && ~contains(sourceIndex(i).name,'exp2') && ~contains(sourceIndex(i).name,'expblank')
+        imgFileName = cat(2,imgFileName,sourceIndex(i).name);
+    end
+end
 img = cell(size(imgFileName));
 imgT = cell(size(imgFileName));
 for i = 1:length(imgFileName)
@@ -140,7 +153,7 @@ Screen('Flip',win);
 
 %% show explanation
 if TRIALINFO.showExplanation
-    explainImgName = {'1.png','2.png','blank.png'};
+    explainImgName = {'exp1.png','exp2.png','expblank.png'};
     explainImg = cell(size(explainImgName));
     for i = 1:length(explainImgName)
         [explainImg{i},~,~] = imread(fullfile(pwd,'sources',explainImgName{i}),'png');
@@ -301,11 +314,11 @@ GetClicks(win);
 
 
 %% formally start
-trialIndex = 1:TRIALINFO.maxDifficulty;
+trialIndex = 2:TRIALINFO.maxDifficulty;
 trialOrder = sort(repmat(trialIndex,1,TRIALINFO.repetition));
 breakFlag = 0;
 correctAnswer = cell(size(trialOrder));
-choiceAnswer = cell(size(trialOrder));
+chosenAnswer = cell(size(trialOrder));
 reactionTime = cell(size(trialOrder));
 
 % calculate for location of picture center, order from left to right, top to bottom
@@ -325,7 +338,7 @@ for triali = 1:length(trialOrder)
         dispImg{i} = Screen('MakeTexture', win, img{picIndex(i)});
     end
     
-    % show pictures for remember
+    % show pictures to remember
     for remi = 1:picRemNum
         Screen('DrawTexture', win, dispImg{picRemOrder(remi)}, [], [picLocations{1}(1,1)-TRIALINFO.imgSize/2,picLocations{1}(1,2)-TRIALINFO.imgSize/2,picLocations{1}(1,1)+TRIALINFO.imgSize/2,picLocations{1}(1,2)+TRIALINFO.imgSize/2],[],[],[]);
         Screen('DrawingFinished',win);
@@ -370,7 +383,7 @@ for triali = 1:length(trialOrder)
                 vx = [picLocations{picDisNum}(mouseChecki,1)-TRIALINFO.imgSize/2,picLocations{picDisNum}(mouseChecki,1)+TRIALINFO.imgSize/2,picLocations{picDisNum}(mouseChecki,1)+TRIALINFO.imgSize/2,picLocations{picDisNum}(mouseChecki,1)-TRIALINFO.imgSize/2,picLocations{picDisNum}(mouseChecki,1)-TRIALINFO.imgSize/2];
                 vy = [picLocations{picDisNum}(mouseChecki,2)-TRIALINFO.imgSize/2,picLocations{picDisNum}(mouseChecki,2)-TRIALINFO.imgSize/2,picLocations{picDisNum}(mouseChecki,2)+TRIALINFO.imgSize/2,picLocations{picDisNum}(mouseChecki,2)+TRIALINFO.imgSize/2,picLocations{picDisNum}(mouseChecki,2)-TRIALINFO.imgSize/2];
                 if inpolygon(mx,my,vx,vy)
-                    choiceAnswer{triali}(choicei) = picDisOrder(mouseChecki);
+                    chosenAnswer{triali}(choicei) = picDisOrder(mouseChecki);
                     chosenPic = cat(1,chosenPic,mouseChecki);
                     reactionTime{triali}(choicei) = toc(choiceT);
                     choicei = choicei+1;
@@ -398,7 +411,7 @@ for triali = 1:length(trialOrder)
     
     % for feedback
     if TRIALINFO.feedback
-        if isequal(choiceAnswer{triali}, correctAnswer{triali})
+        if isequal(chosenAnswer{triali}, correctAnswer{triali})
             Screen('TextSize',win,ceil(80/1280*SCREEN.widthPix));
             [~, ~, ~] = DrawFormattedText(win, double('¹§Ï²Äã»Ø´ðÕýÈ·£¡'),'center','center',[0.2 0.8 0.2]);
             Screen('TextBackgroundColor',win, SCREEN.backgroundColor);
@@ -428,7 +441,9 @@ for triali = 1:length(trialOrder)
     end
 end
 
-
+save(fullfile(saveDir,fileName),'TRIALINFO','SCREEN','correctAnswer','chosenAnswer','reactionTime','breakFlag','imgFileName');
+Screen('CloseAll');
+cd(curDir);
 
 end
 

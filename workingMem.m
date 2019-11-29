@@ -1,11 +1,14 @@
 function workingMem(subjectName,repetition,displayDuration,maxDifficulty,choiceDuration,seedStr)
-% workingMem(subjectName[,repetition][,displayDuration][,maxDifficulty][,choiceDuration][,seedStr])
-% coding for SH 9th people's hospital
-%
-% If you want to add new images, convert to .png then move in /sources floder.
+% workingMem([subjectName] [,repetition][,displayDuration][,maxDifficulty][,choiceDuration][,seedStr])
+% In default: subjectName:'test'   repetition:2   displayDuration:3  
+%               maxDifficulty:5    choiceDuration:10   seedStr:rand()*10^6
+% 
+% If you want to add new images, convert to .png then move in /sources folder.
+% You can also remove images by simply delete them from /sources folder.
 %
 % The number in correctAnswer/chosenAnswer represent the order in imgFileName, that refer to the displayed pictures.
 % 
+% coding for SH 9th people's hospital
 % By BYC 12-2019
 
 difficultyCap = 5; % valid max difficulty
@@ -96,8 +99,6 @@ else
     SCREEN.screenId = max(Screen('Screens'));
 end
 PsychImaging('PrepareConfiguration');
-
-PsychImaging('PrepareConfiguration');
 PsychImaging('AddTask', 'General', 'FloatingPoint32BitIfPossible');
 [win , winRect] = PsychImaging('OpenWindow', SCREEN.screenId);
 
@@ -109,7 +110,7 @@ SCREEN.heightPix = winRect(4);
 
 SCREEN.refreshRate = Screen('NominalFrameRate', SCREEN.screenId);
 % backgroundColor = GrayIndex(win);
-SCREEN.backgroundColor = 0.8;
+SCREEN.backgroundColor = [0.8 0.8 0.8];
 redColor = [0.9 0.1 0.1];
 
 Screen('FillRect', win, SCREEN.backgroundColor);
@@ -118,7 +119,7 @@ TRIALINFO.imgRate = 4;
 imgSize1 = ceil(min(SCREEN.widthPix/(1+(1+TRIALINFO.imgRate)*ceil((TRIALINFO.maxDifficulty+1)/2)),SCREEN.heightPix/(1+(1+TRIALINFO.imgRate)*2))*TRIALINFO.imgRate);
 imgSize2 = ceil(min(SCREEN.widthPix/(1+(1+TRIALINFO.imgRate)*ceil((TRIALINFO.maxDifficulty+1)/3)),SCREEN.heightPix/(1+(1+TRIALINFO.imgRate)*3))*TRIALINFO.imgRate);
 if imgSize1>imgSize2
-    layOutType = 1; % in one or two row
+    layOutType = 1; % in 1 or 2 row
     TRIALINFO.imgSize = ceil(imgSize1/2)*2;
 else
     layOutType = 2; % in 1-3 row
@@ -137,9 +138,10 @@ img = cell(size(imgFileName));
 imgT = cell(size(imgFileName));
 for i = 1:length(imgFileName)
     [img{i},~,imgT{i}] = imread(fullfile(pwd,'sources',imgFileName{i}),'png');
-    img{i} = imresize(img{i},[TRIALINFO.imgSize,TRIALINFO.imgSize],'nearest'); imgT{i} = ~imresize(imgT{i},[TRIALINFO.imgSize,TRIALINFO.imgSize],'nearest');
-    Tindex(:,:,1) = imgT{i};Tindex(:,:,2) = imgT{i};Tindex(:,:,3) = imgT{i};
-    img{i}(Tindex) = SCREEN.backgroundColor*255;
+    img{i} = imresize(img{i},[TRIALINFO.imgSize,TRIALINFO.imgSize],'nearest'); imgT{i} = imresize(imgT{i},[TRIALINFO.imgSize,TRIALINFO.imgSize],'nearest');
+    img{i}(:,:,1) = SCREEN.backgroundColor(1).*(max(max(imgT{i}))-imgT{i})+img{i}(:,:,1).*(imgT{i}./max(max(imgT{i})));
+    img{i}(:,:,2) = SCREEN.backgroundColor(2).*(max(max(imgT{i}))-imgT{i})+img{i}(:,:,2).*(imgT{i}./max(max(imgT{i})));
+    img{i}(:,:,3) = SCREEN.backgroundColor(3).*(max(max(imgT{i}))-imgT{i})+img{i}(:,:,3).*(imgT{i}./max(max(imgT{i})));
 end
             
 ShowCursor('Hand');
@@ -305,13 +307,6 @@ Screen('DrawingFinished',win);
 Screen('Flip',win,0,0);
 
 GetClicks(win);
-%     while 1
-%         [~,~,mouseDown] = GetMouse(win);
-%         if any(mouseDown)
-%             break;
-%         end
-%     end
-
 
 %% formally start
 trialIndex = 2:TRIALINFO.maxDifficulty;
@@ -382,7 +377,7 @@ for triali = 1:length(trialOrder)
             for mouseChecki = 1:picDisNum
                 vx = [picLocations{picDisNum}(mouseChecki,1)-TRIALINFO.imgSize/2,picLocations{picDisNum}(mouseChecki,1)+TRIALINFO.imgSize/2,picLocations{picDisNum}(mouseChecki,1)+TRIALINFO.imgSize/2,picLocations{picDisNum}(mouseChecki,1)-TRIALINFO.imgSize/2,picLocations{picDisNum}(mouseChecki,1)-TRIALINFO.imgSize/2];
                 vy = [picLocations{picDisNum}(mouseChecki,2)-TRIALINFO.imgSize/2,picLocations{picDisNum}(mouseChecki,2)-TRIALINFO.imgSize/2,picLocations{picDisNum}(mouseChecki,2)+TRIALINFO.imgSize/2,picLocations{picDisNum}(mouseChecki,2)+TRIALINFO.imgSize/2,picLocations{picDisNum}(mouseChecki,2)-TRIALINFO.imgSize/2];
-                if inpolygon(mx,my,vx,vy)
+                if inpolygon(mx,my,vx,vy) && ~ismember(picDisOrder(mouseChecki),chosenAnswer{triali})
                     chosenAnswer{triali}(choicei) = picDisOrder(mouseChecki);
                     chosenPic = cat(1,chosenPic,mouseChecki);
                     reactionTime{triali}(choicei) = toc(choiceT);
@@ -440,11 +435,10 @@ for triali = 1:length(trialOrder)
         break;
     end
 end
-
 save(fullfile(saveDir,fileName),'TRIALINFO','SCREEN','correctAnswer','chosenAnswer','reactionTime','breakFlag','imgFileName');
 Screen('CloseAll');
 cd(curDir);
-
+clear TRIALINFO SCREEN subjectName repetition displayDuration maxDifficulty choiceDuration seedStr
 end
 
 function drawExplanation(win)

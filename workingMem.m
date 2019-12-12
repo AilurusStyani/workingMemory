@@ -10,7 +10,7 @@ function workingMem(subjectName,repetition,displayDuration,maxDifficulty,choiceD
 % 
 % coding for SH 9th people's hospital
 % By BYC 12-2019
-
+global TRIALINFO
 difficultyCap = 5; % valid max difficulty
 
 if nargin<1 || isempty(subjectName)
@@ -48,6 +48,19 @@ else
     TRIALINFO.choiceDuration = choiceDuration;
 end
 
+touchDev = min(GetTouchDeviceIndices([], 1));
+if isempty(touchDev)
+    touchDev = min(GetTouchDeviceIndices([], 0));
+end
+
+if isempty(touchDev) || ~ismember(touchDev, GetTouchDeviceIndices)
+    touchScreenMod = false;
+else
+    touchScreenMod = true;
+    touchScreenInfo = GetTouchDeviceInfo(touchDev);
+    disp(touchScreenInfo);
+end
+
 % random seed
 if nargin >= 6
     if strcmp(seedStr,'shuffle') || strcmp(seedStr,'default')
@@ -77,7 +90,7 @@ escape = KbName('ESCAPE'); % abort this block
 % repeatKey = KbName('backspace');
 
 % parameter
-global TRIALINFO
+
 TRIALINFO.feedback = 1; % 1 to give feedback
 TRIALINFO.feedbackDuration = TRIALINFO.displayDuration; % second
 TRIALINFO.showExplanation = 1;  % 1 to give explanation
@@ -95,7 +108,7 @@ AssertOpenGL;
 InitializeMatlabOpenGL;
 
 if max(Screen('Screens')) > 1
-    SCREEN.screenId = max(Screen('Screens'))-1;
+    SCREEN.screenId = max(Screen('Screens'));
 else
     SCREEN.screenId = max(Screen('Screens'));
 end
@@ -120,12 +133,20 @@ TRIALINFO.imgRate = 4;
 imgSize1 = ceil(min(SCREEN.widthPix/(1+(1+TRIALINFO.imgRate)*ceil((TRIALINFO.maxDifficulty+1)/2)),SCREEN.heightPix/(1+(1+TRIALINFO.imgRate)*2))*TRIALINFO.imgRate);
 imgSize2 = ceil(min(SCREEN.widthPix/(1+(1+TRIALINFO.imgRate)*ceil((TRIALINFO.maxDifficulty+1)/3)),SCREEN.heightPix/(1+(1+TRIALINFO.imgRate)*3))*TRIALINFO.imgRate);
 if imgSize1>imgSize2
-    layOutType = 1; % in 1 or 2 row
+    layOutType = 1; % in 1 or 2 row, reserved for 7-8 pictures
     TRIALINFO.imgSize = ceil(imgSize1/2)*2;
 else
-    layOutType = 2; % in 1-3 row
+    layOutType = 2; % in 1-3 row, reserved for 7-8 pictures
     TRIALINFO.imgSize = ceil(imgSize2/2)*2;
 end
+
+% % initial for touch screen
+% if touchScreenMod
+%     try
+%         TouchQueueCreate(w, dev);
+%         TouchQueueStart(dev);
+%     end
+% end
 
 % read img source
 sourceIndex = dir(fullfile(curDir,'sources','*.png'));
@@ -276,7 +297,7 @@ for triali = 1:length(trialOrder)
                         x4 = picLocations{picDisNum}(chosenPic(squarei),1)-TRIALINFO.imgSize/2;
                         y4 = picLocations{picDisNum}(chosenPic(squarei),2)+TRIALINFO.imgSize/2;
                         lineMetrix = [x1,x2,x2,x3,x3,x4,x4,x1;y1,y2,y2,y3,y3,y4,y4,y1];
-                        Screen('DrawLines', win, lineMetrix,8,redColor);
+                        Screen('DrawLines', win, lineMetrix,8,SCREEN.redColor);
                     end
                     Screen('DrawingFinished',win);
                     Screen('Flip',win,0,0);

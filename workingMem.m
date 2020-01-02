@@ -51,19 +51,6 @@ else
     TRIALINFO.choiceDuration = choiceDuration;
 end
 
-touchDev = min(GetTouchDeviceIndices([], 1));
-if isempty(touchDev)
-    touchDev = min(GetTouchDeviceIndices([], 0));
-end
-
-if isempty(touchDev) || ~ismember(touchDev, GetTouchDeviceIndices)
-    touchScreenMod = false;
-else
-    touchScreenMod = true;
-    touchScreenInfo = GetTouchDeviceInfo(touchDev);
-    disp(touchScreenInfo);
-end
-
 % random seed
 if nargin >= 6
     if strcmp(seedStr,'shuffle') || strcmp(seedStr,'default')
@@ -90,9 +77,9 @@ mkdir(saveDir);
 KbName('UnifyKeyNames');
 skipKey = KbName('Return'); % skip current trial
 escape = KbName('ESCAPE'); % abort this block
-% repeatKey = KbName('backspace');
+repeatKey = KbName('backspace');
 
-% parameter
+%% parameter
 TRIALINFO.feedback = true; % true/1 to give feedback, false/0 not
 TRIALINFO.feedbackDuration = TRIALINFO.displayDuration; % second
 TRIALINFO.showExplanation = true;  % true/1 to give explanation, false/0 not
@@ -125,7 +112,7 @@ SCREEN.heightPix = winRect(4);
 [SCREEN.center(1), SCREEN.center(2)] = RectCenter(winRect);
 
 SCREEN.refreshRate = Screen('NominalFrameRate', SCREEN.screenId);
-% backgroundColor = GrayIndex(win);
+% SCREEN.backgroundColor = GrayIndex(win);
 SCREEN.backgroundColor = [0.8 0.8 0.8];
 SCREEN.redColor = [0.9 0.1 0.1];
 
@@ -135,20 +122,12 @@ TRIALINFO.imgRate = 4;
 imgSize1 = ceil(min(SCREEN.widthPix/(1+(1+TRIALINFO.imgRate)*ceil((TRIALINFO.maxDifficulty+1)/2)),SCREEN.heightPix/(1+(1+TRIALINFO.imgRate)*2))*TRIALINFO.imgRate);
 imgSize2 = ceil(min(SCREEN.widthPix/(1+(1+TRIALINFO.imgRate)*ceil((TRIALINFO.maxDifficulty+1)/3)),SCREEN.heightPix/(1+(1+TRIALINFO.imgRate)*3))*TRIALINFO.imgRate);
 if imgSize1>imgSize2
-    layOutType = 1; % in 1 or 2 row, reserved for 7-8 pictures
+    TRIALINFO.layOutType = 1; % in 1 or 2 row, reserved for 7-8 pictures
     TRIALINFO.imgSize = ceil(imgSize1/2)*2;
 else
-    layOutType = 2; % in 1-3 row, reserved for 7-8 pictures
+    TRIALINFO.layOutType = 2; % in 1-3 row, reserved for 7-8 pictures
     TRIALINFO.imgSize = ceil(imgSize2/2)*2;
 end
-
-% % initial for touch screen
-% if touchScreenMod
-%     try
-%         TouchQueueCreate(w, dev);
-%         TouchQueueStart(dev);
-%     end
-% end
 
 % read img source
 sourceIndex = dir(fullfile(curDir,'sources','*.png'));
@@ -193,6 +172,8 @@ while 1
     
     [~,x,y,~] = GetClicks(win);
     if inpolygon(x,y,textBoundsx,textBoundsy)
+        % repeat the explanation
+        
         % check for mouse release
         while 1
             [~,~,buttons] = GetMouse(win);
@@ -203,6 +184,8 @@ while 1
         TRIALINFO.showExplanation = true;
         continue;
     else
+        % going to the task
+        
         % check for mouse release
         while 1
             [~,~,buttons] = GetMouse(win);
@@ -276,12 +259,8 @@ for triali = 1:length(trialOrder)
     choicei = 1;
     chosenPic = [];
     while toc(choiceT) < TRIALINFO.choiceDuration && choicei <= picRemNum
-        [~,~,mouseDown] = GetMouse(win);
+        [mx,my,mouseDown] = GetMouse(win);
         if mouseDown(1)
-            while mouseDown(1)
-                % until realease
-                [mx,my,mouseDown] = GetMouse(win);
-            end
             for mouseChecki = 1:picDisNum
                 vx = [picLocations{picDisNum}(mouseChecki,1)-TRIALINFO.imgSize/2,picLocations{picDisNum}(mouseChecki,1)+TRIALINFO.imgSize/2,picLocations{picDisNum}(mouseChecki,1)+TRIALINFO.imgSize/2,picLocations{picDisNum}(mouseChecki,1)-TRIALINFO.imgSize/2,picLocations{picDisNum}(mouseChecki,1)-TRIALINFO.imgSize/2];
                 vy = [picLocations{picDisNum}(mouseChecki,2)-TRIALINFO.imgSize/2,picLocations{picDisNum}(mouseChecki,2)-TRIALINFO.imgSize/2,picLocations{picDisNum}(mouseChecki,2)+TRIALINFO.imgSize/2,picLocations{picDisNum}(mouseChecki,2)+TRIALINFO.imgSize/2,picLocations{picDisNum}(mouseChecki,2)-TRIALINFO.imgSize/2];
@@ -308,6 +287,10 @@ for triali = 1:length(trialOrder)
                     Screen('DrawingFinished',win);
                     Screen('Flip',win,0,0);
                 end
+            end
+            while mouseDown(1)
+                % until realease
+                [~,~,mouseDown] = GetMouse(win);
             end
         end
     end
@@ -553,4 +536,12 @@ picLocations{6} = [SCREEN.widthPix/2-TRIALINFO.imgSize/TRIALINFO.imgRate*(1+TRIA
     SCREEN.widthPix/2-TRIALINFO.imgSize/TRIALINFO.imgRate*(1+TRIALINFO.imgRate), SCREEN.heightPix/2+TRIALINFO.imgSize/TRIALINFO.imgRate*(1+TRIALINFO.imgRate/2);
     SCREEN.widthPix/2, SCREEN.heightPix/2+TRIALINFO.imgSize/TRIALINFO.imgRate*(1+TRIALINFO.imgRate/2);
     SCREEN.widthPix/2+TRIALINFO.imgSize/TRIALINFO.imgRate*(1+TRIALINFO.imgRate), SCREEN.heightPix/2+TRIALINFO.imgSize/TRIALINFO.imgRate*(1+TRIALINFO.imgRate/2)];
+
+% if TRIALINFO.layOutType == 1
+%     picLocations{7} = [];
+%     picLocations{8} = [];
+% elseif TRIALINFO.layOutType == 2
+%     picLocations{7} = [];
+%     picLocations{8} = [];
+% end
 end

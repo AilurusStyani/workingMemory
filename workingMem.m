@@ -46,7 +46,7 @@ else
 end
 
 if nargin<5 || isempty(choiceDuration)
-    TRIALINFO.choiceDuration = 10; % second
+    TRIALINFO.choiceDuration = 15; % second
 else
     TRIALINFO.choiceDuration = choiceDuration;
 end

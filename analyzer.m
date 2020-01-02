@@ -5,13 +5,14 @@ files = dir(fullfile(dataPath,'*.mat'));
 data = cell(size(files));
 
 set(figure(1),'pos',[27 63 1849 892],'Name','Correct Rate');clf;
-subplot1 = tight_subplot(1,length(files),[0.3 0.05]);
+subplot1 = tight_subplot(2,ceil(length(files)/2),[0.08 0.05]);
 suptitle('Correction rate');
 
 set(figure(2),'pos',[27 63 1849 892],'Name','Response Time');clf;
-subplot2 = tight_subplot(length(files),2,[0.3 0.05]);
+subplot2 = tight_subplot(length(files),2,[0.08 0.05]);
 suptitle('Response Time');
 
+colorSet = {[0.1 0.9 0.1],[0.3 0.6 0.1],[0.6 0.3 0.1],[0.9 0.1 0.1],[0.1 0.1 0.8]};
 for filei = 1:length(files)
     axes(subplot1(filei));
     hold on
@@ -21,6 +22,9 @@ for filei = 1:length(files)
         % check if the block is broked
         continue
     end
+    subNameIndex = strfind(files(filei).name,'_');
+    subName = files(filei).name(subNameIndex(1)+1:subNameIndex(2)-1);
+    title(subName);
     
     trialNum = length(data{filei}.chosenAnswer);
     correct = 0;
@@ -47,8 +51,11 @@ for filei = 1:length(files)
     set(subplot1(filei),'YTickLabelMode','auto');
     xticks(1:length(correctRate_sep)+1);
     xticklabels({1:length(correctRate_sep),'overall'})
+    lgd = legend(['repetition: ' num2str(data{filei}.TRIALINFO.repetition)],'location','northeastoutside');
+    lgd.Box = 'off';
     
     axes(subplot2(filei*2-1));
+    title(subName);
     hold on
     responseT = cell(data{filei}.TRIALINFO.maxDifficulty,1);
     for i = 1:length(data{filei}.reactionTime)
@@ -70,14 +77,17 @@ for filei = 1:length(files)
     bar(responseTMean);
     er = errorbar(1:length(responseT),responseTMean,reaponseTErrorBar,reaponseTErrorBar);
     er.Color = 'k';
+    er.LineWidth = 2;
     er.LineStyle = 'none';
     xlabel('Order of graphs');
-    ylabel('Reaction time (second)');
+    ylabel('RT accross the difficulty (s)');
     set(subplot2(filei*2-1),'YTickLabelMode','auto');
-    xticks(1:TRIALINFO.maxDifficulty);
-    xticklabels(1:TRIALINFO.maxDifficulty)
+    xticks(1:data{filei}.TRIALINFO.maxDifficulty);
+    xticklabels({'1st','2nd','3rd','4th','5th','6th','7th'});
+    legend(['repetition: ' num2str(data{filei}.TRIALINFO.repetition)],'location','northeast');
     
     axes(subplot2(filei*2));
+    title(subName);
     hold on
     responseT_level = cell(data{filei}.TRIALINFO.maxDifficulty-1,1);
     level = 2;
@@ -102,13 +112,17 @@ for filei = 1:length(files)
         end
     end
     for i = 1:length(meanResT_lev)
-        errorbar(1:length(meanResT_lev{i}),meanResT_lev{i},errorbarResT_lev{i});
+        er = errorbar(1:length(meanResT_lev{i}),meanResT_lev{i},errorbarResT_lev{i});
+        er.Color = colorSet{i};
+        er.LineWidth = 2;
     end
     xlabel('Order of graphs');
-    ylabel('Reaction time (second)');
+    ylabel('RT (s)');
     set(subplot2(filei*2),'YTickLabelMode','auto');
-    xticks(1:TRIALINFO.maxDifficulty);
-    xticklabels(1:TRIALINFO.maxDifficulty)
+    xticks(1:data{filei}.TRIALINFO.maxDifficulty);
+    xticklabels(1:data{filei}.TRIALINFO.maxDifficulty);
+    lgd = legend({'level 2','level 3','level 4','level 5','level 6','level 7'},'Location','southeast');
+    title(lgd,'Difficulty level');
 end
 
 

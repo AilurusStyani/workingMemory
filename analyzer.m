@@ -5,8 +5,8 @@ files = dir(fullfile(dataPath,'*.mat'));
 data = cell(size(files));
 
 set(figure(1),'pos',[27 63 1849 892],'Name','Correct Rate');clf;
-subplot1 = tight_subplot(2,ceil(length(files)/2),[0.08 0.05]);
-suptitle('Correction rate');
+subplot1 = tight_subplot(length(files),2,[0.08 0.05]);
+suptitle('Correct rate');
 
 set(figure(2),'pos',[27 63 1849 892],'Name','Response Time');clf;
 subplot2 = tight_subplot(length(files),2,[0.08 0.05]);
@@ -15,7 +15,8 @@ suptitle('Response Time');
 colorSet = {[0.1 0.9 0.1],[0.3 0.6 0.1],[0.6 0.3 0.1],[0.9 0.1 0.1],[0.1 0.1 0.8]};
 markStyle = {'-o','-s','-+','.-'};
 for filei = 1:length(files)
-    axes(subplot1(filei));
+    % plot CR
+    axes(subplot1(2*filei-1));
     hold on
 
     data{filei} = load(fullfile(dataPath,files(filei).name));
@@ -33,7 +34,9 @@ for filei = 1:length(files)
     trialNum_sep = zeros(data{filei}.TRIALINFO.maxDifficulty,1);
     correctRate_sep = cell(data{filei}.TRIALINFO.maxDifficulty,1);
     level = 2;
-    correct_sep{level} = zeros(length(data{filei}.chosenAnswer{i}),1);
+    correct_sep{level} = zeros(length(data{filei}.chosenAnswer{1}),1);
+    correct_lev = zeros(data{filei}.TRIALINFO.maxDifficulty,1);
+    
     for i = 1:length(data{filei}.chosenAnswer)
         if length(data{filei}.correctAnswer{i}) > level
             correctRate_sep{level} = correct_sep{level}./trialNum_sep(level);
@@ -47,26 +50,43 @@ for filei = 1:length(files)
         end
         trialNum_sep(level) = trialNum_sep(level)+1;
         if isequal(data{filei}.chosenAnswer{i},data{filei}.correctAnswer{i})
+            correct_lev(level) = correct_lev(level)+1;
             correct = correct+1; % calculate for trial
         end
     end
     correctRate_sep{level} = correct_sep{level}./trialNum_sep(level);
     correctRate = correct./trialNum;
-    
+    correctRate_lev = correct_lev./trialNum_sep;
     for i = 2:level
         plot(correctRate_sep{i},markStyle{i-1},'color',colorSet{i},'LineWidth',6-i);
     end
-    bar(data{filei}.TRIALINFO.maxDifficulty+1,correctRate,'k')
     xlabel('Order of graphs');
     ylabel('Correct rate');
-    set(subplot1(filei),'YTickLabelMode','auto');
+    yticks(0:0.2:1);
+    yticklabels({'0%','20%','40%','60%','80%','100%'});
+    ylim([0,1])
     xticks(1:length(correctRate_sep)+1);
-    xticklabels({1:length(correctRate_sep),'overall'})
-    lgd = legend({'level 2','level 3','level 4','level 5','Overall'},'Location','northeastoutside');
+    xticklabels(1:length(correctRate_sep))
+    lgd = legend({'level 2','level 3','level 4','level 5'},'Location','northeastoutside');
     title(lgd,['Repetition: ' num2str(data{filei}.TRIALINFO.repetition)]);
-%     lgd = legend(['repetition: ' num2str(data{filei}.TRIALINFO.repetition)],'location','northeastoutside');
-%     lgd.Box = 'off';
     
+    axes(subplot1(2*filei));
+    hold on
+    title(subName);
+    xlabel('Difficulty level');
+    ylabel('Correct rate');
+    
+    bar(2:data{filei}.TRIALINFO.maxDifficulty,correctRate_lev(2:end),'b');
+    bar(data{filei}.TRIALINFO.maxDifficulty+1,correctRate,'k');
+    lgd = legend(['repetition: ' num2str(data{filei}.TRIALINFO.repetition)],'location','northeastoutside');
+    lgd.Box = 'off';
+    xticks(2:length(correctRate_sep)+1);
+    xticklabels({2:length(correctRate_sep) 'overall'})
+    yticks(0:0.2:1);
+    yticklabels({'0%','20%','40%','60%','80%','100%'});
+    
+    
+    % plot RT
     axes(subplot2(filei*2-1));
     title(subName);
     hold on

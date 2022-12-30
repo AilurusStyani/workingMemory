@@ -1,7 +1,7 @@
 function workingMem(subjectName,repetition,displayDuration,maxDifficulty,choiceDuration,seedStr)
 % workingMem([subjectName] [,repetition][,displayDuration][,maxDifficulty][,choiceDuration][,seedStr])
-% In default: subjectName:'test'   repetition:5   displayDuration:3
-%               maxDifficulty:5    choiceDuration:10   seedStr:rand()*10^6
+% In default: subjectName: 'test'   repetition: 5   displayDuration: 3
+%               maxDifficulty: 5    choiceDuration: 10   seedStr: 'yymmddHHMM'
 %
 % Environment: windows10, matlab2015+, psychotoolbox
 % 
@@ -53,17 +53,15 @@ end
 
 % random seed
 if nargin >= 6
-    if strcmp(seedStr,'shuffle') || strcmp(seedStr,'default')
+    if strcmp(seedStr,'shuffle') || strcmp(seedStr,'default') || isnumeric(seedStr)
         TRIALINFO.seed = seedStr;
     elseif ischar(seedStr)
         TRIALINFO.seed = str2double(seedStr);
     elseif isempty(seedStr)
-        TRIALINFO.seed = ceil(rand()*1000000);
-    elseif isnumeric(seedStr)
-        TRIALINFO.seed = seedStr;
+        TRIALINFO.seed = str2double(datestr(now,'yymmddHHMM'));
     end
 else
-    TRIALINFO.seed = ceil(rand()*1000000);
+    TRIALINFO.seed = str2double(datestr(now,'yymmddHHMM'));
 end
 rng(TRIALINFO.seed);
 
@@ -138,13 +136,12 @@ for i = 1:length(sourceIndex)
     end
 end
 img = cell(size(imgFileName));
-imgT = cell(size(imgFileName));
 for i = 1:length(imgFileName)
-    [img{i},~,imgT{i}] = imread(fullfile(pwd,'sources',imgFileName{i}),'png');
-    img{i} = imresize(img{i},[TRIALINFO.imgSize,TRIALINFO.imgSize],'nearest'); imgT{i} = imresize(imgT{i},[TRIALINFO.imgSize,TRIALINFO.imgSize],'nearest');
-    img{i}(:,:,1) = SCREEN.backgroundColor(1).*(max(max(imgT{i}))-imgT{i})+img{i}(:,:,1).*(imgT{i}./max(max(imgT{i})));
-    img{i}(:,:,2) = SCREEN.backgroundColor(2).*(max(max(imgT{i}))-imgT{i})+img{i}(:,:,2).*(imgT{i}./max(max(imgT{i})));
-    img{i}(:,:,3) = SCREEN.backgroundColor(3).*(max(max(imgT{i}))-imgT{i})+img{i}(:,:,3).*(imgT{i}./max(max(imgT{i})));
+    [temp,imgMap] = imread(fullfile(pwd,'sources',imgFileName{i}),'png','BackgroundColor',SCREEN.backgroundColor);
+    if ~isempty(imgMap)
+        temp = ind2rgb(temp,imgMap);
+    end
+    img{i} = imresize(temp,[TRIALINFO.imgSize,TRIALINFO.imgSize],'nearest');
 end
 
 ShowCursor('Hand');
